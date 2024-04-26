@@ -153,7 +153,21 @@ def extract_article_from_structure(soup, url):
             cleaned_title = clean_text(post_title)
             cleaned_content = clean_text(article_body)
             print("Found content. Processing")
-            get_audio(cleaned_content, cleaned_title, url)  # Pass the URL here
+            get_audio(cleaned_content, cleaned_title, url)
+            return True
+        
+    # Example structure 4 (based on provided HTML structure from the user)
+    h1_element = soup.find('h1', class_='h1')
+    if h1_element:
+        post_title = h1_element.text.strip()
+        post_content = soup.find('div', class_='post-content')
+        if post_content:
+            paragraphs = post_content.find_all('p')
+            article_body = "\n\n".join([paragraph.get_text() for paragraph in paragraphs])
+            cleaned_title = clean_text(post_title)
+            cleaned_content = clean_text(article_body)
+            print("Found content. Processing")
+            get_audio(cleaned_content, cleaned_title, url)
             return True
     
     return False
