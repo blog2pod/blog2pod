@@ -169,6 +169,26 @@ def extract_article_from_structure(soup, url):
             print("Found content. Processing")
             get_audio(cleaned_content, cleaned_title, url)
             return True
+        
+    # Extract content from the provided HTML structure
+    columns_holder = soup.find('div', class_='columns-holder')
+    if columns_holder:
+
+        # Extract title from meta tags
+        meta_title_elements = soup.find_all('meta', {'property': 'og:title'}) + soup.find_all('meta', {'name': 'twitter:title'})
+        for meta_title_element in meta_title_elements:
+            meta_title = clean_text(meta_title_element['content'])
+            if meta_title:
+                cleaned_title = meta_title
+                break
+        
+        # Extract paragraphs
+        paragraphs = columns_holder.find_all('p', recursive=False)
+        cleaned_content = "\n\n".join([clean_text(paragraph.get_text(strip=True)) for paragraph in paragraphs if paragraph.get_text(strip=True)])
+        if cleaned_content:
+            print("Found content. Processing")
+            get_audio(cleaned_content, cleaned_title, url)
+            return True
     
     return False
 
