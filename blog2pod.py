@@ -27,7 +27,7 @@ azure_endpoint = os.getenv("AZURE_ENDPOINT")
 aiclient = AzureOpenAI(
     api_key=os.getenv("AZUREOPENAI_API_KEY"),  
     api_version="2024-02-15-preview",
-    azure_endpoint="{azure_endpoint}/openai/deployments/{azure_deployment}/audio/speech?api-version=2024-02-15-preview"
+    azure_endpoint=f"{azure_endpoint}/openai/deployments/{azure_deployment}/audio/speech?api-version=2024-02-15-preview"
 )
 
 # Initialize discord client
