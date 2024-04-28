@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 from pathlib import Path
 import time
-from openai import OpenAI
+from openai import AzureOpenAI
 from music_tag import load_file
 import discord
 from discord.ext import commands
@@ -21,7 +21,14 @@ load_dotenv()
 # instructions for generating API keys is linked in the description
 discord_token = os.getenv("DISCORD_BOT_TOKEN")
 
-aiclient = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+azure_deployment = os.getenv("AZURE_DEPLOYMENT")
+azure_endpoint = os.getenv("AZURE_ENDPOINT")
+
+aiclient = AzureOpenAI(
+    api_key=os.getenv("AZUREOPENAI_API_KEY"),  
+    api_version="2024-02-15-preview",
+    azure_endpoint="{azure_endpoint}/openai/deployments/{azure_deployment}/audio/speech?api-version=2024-02-15-preview"
+)
 
 # Initialize discord client
 intents = discord.Intents.default()
