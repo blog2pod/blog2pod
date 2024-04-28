@@ -90,7 +90,7 @@ def get_audio(cleaned_content, cleaned_title, url):
 def extract_article_from_structure(soup, url):
     # Extract article content based on known HTML structures
     
-    # Example structure 1 (similar to The Verge)
+    # Example structure 1
     script = soup.find('script', type='application/ld+json')
     if script:
         json_data = json.loads(script.string)
@@ -99,11 +99,11 @@ def extract_article_from_structure(soup, url):
         if post_title and article_body:
             cleaned_title = clean_text(post_title)
             cleaned_content = clean_text(article_body)
-            print("Found content. Processing")
+            # print(cleaned_content)
             get_audio(cleaned_content, cleaned_title, url)
             return True
     
-    # Example structure 2 (similar to 9to5Mac)
+    # Example structure 2
     post_title = soup.find('title')
     article_content = soup.find('div', class_='article-content')
     if post_title and article_content:
@@ -111,11 +111,11 @@ def extract_article_from_structure(soup, url):
         article_body = "\n\n".join([paragraph.get_text() for paragraph in paragraphs])
         cleaned_title = clean_text(post_title.get_text())
         cleaned_content = clean_text(article_body)
-        print("Found content. Processing")
+        # print(cleaned_content)
         get_audio(cleaned_content, cleaned_title, url)
         return True
     
-    # Example structure 3 (based on provided HTML structure from Microsoft)
+    # Example structure 3
     headings = soup.find_all(['h2', 'h3'])
     if headings:
         for heading in headings:
@@ -134,11 +134,11 @@ def extract_article_from_structure(soup, url):
                 if post_title and article_body:
                     cleaned_title = clean_text(post_title)
                     cleaned_content = clean_text(article_body)
-                    print("Found content. Processing")
+                    # print(cleaned_content)
                     get_audio(cleaned_content, cleaned_title, url)
                     return True
                 
-    # Check if the article structure matches the provided example
+    # Example structure 4
     article_container = soup.find('div', class_='primary-container')
     if article_container:
         # Extract post title
@@ -152,11 +152,11 @@ def extract_article_from_structure(soup, url):
         if post_title and article_body:
             cleaned_title = clean_text(post_title)
             cleaned_content = clean_text(article_body)
-            print("Found content. Processing")
-            get_audio(cleaned_content, cleaned_title, url)
+            # print(cleaned_content)
+            get_audio(cleaned_content, cleaned_title, url)  # Pass the URL here
             return True
         
-    # Example structure 4 (based on provided HTML structure from the user)
+    # Example structure 5
     h1_element = soup.find('h1', class_='h1')
     if h1_element:
         post_title = h1_element.text.strip()
@@ -166,11 +166,26 @@ def extract_article_from_structure(soup, url):
             article_body = "\n\n".join([paragraph.get_text() for paragraph in paragraphs])
             cleaned_title = clean_text(post_title)
             cleaned_content = clean_text(article_body)
-            print("Found content. Processing")
-            get_audio(cleaned_content, cleaned_title, url)
+            # print(cleaned_title)
+            # print(cleaned_content)
+            get_audio(cleaned_content, cleaned_title, url)  # Pass the URL here
             return True
         
-    # Extract content from the provided HTML structure
+    # Example structure 6
+    meta_title = soup.find('meta', {'name': 'title', 'data-type': 'string'})
+    meta_content = soup.find('meta', {'name': 'body', 'data-type': 'text'})
+    if meta_title and meta_content:
+        article_title = meta_title.get('content')
+        article_body = meta_content.get('content')
+        if article_title and article_body:
+            cleaned_title = clean_text(article_title)
+            cleaned_content = clean_text(article_body)
+            # print(cleaned_title)
+            # print(cleaned_content)
+            get_audio(cleaned_content, cleaned_title, url)  # Pass the URL here
+            return True
+
+    # Example structure 7
     columns_holder = soup.find('div', class_='columns-holder')
     if columns_holder:
 
@@ -186,8 +201,9 @@ def extract_article_from_structure(soup, url):
         paragraphs = columns_holder.find_all('p', recursive=False)
         cleaned_content = "\n\n".join([clean_text(paragraph.get_text(strip=True)) for paragraph in paragraphs if paragraph.get_text(strip=True)])
         if cleaned_content:
-            print("Found content. Processing")
-            get_audio(cleaned_content, cleaned_title, url)
+            # print(cleaned_title)
+            # print(cleaned_content)
+            get_audio(cleaned_content, cleaned_title, url)  # Pass the URL here
             return True
     
     return False
