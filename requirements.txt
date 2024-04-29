@@ -6,4 +6,4 @@ music-tag
 pydub
 python-dotenv
 pyppeteer
-newspaper
+newspaper3k
