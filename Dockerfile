@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install ffmpeg
-RUN apt-get update && apt-get install -y ffmpeg chromium
+RUN apt-get update && apt-get install -y ffmpeg
 
 # Copy the rest of the application code into the container
 COPY blog2pod.py .

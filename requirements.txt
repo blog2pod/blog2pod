@@ -7,3 +7,4 @@ pydub
 python-dotenv
 pyppeteer
 newspaper3k
+ffmpeg
