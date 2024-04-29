@@ -35,7 +35,7 @@ slash = SlashCommand(bot, sync_commands=True)
 
 async def scrape_article(url):
     try:
-        browser = await launch()
+        browser = await launch(executablePath='/bin/chromium')
         page = await browser.newPage()
         await page.goto(url)
 
@@ -110,8 +110,8 @@ def get_audio(cleaned_content, cleaned_title, url):
     audio_file.save()
 
     # Move the file to the /completed folder
-    # completed_folder = Path(__file__).parent / "completed"
-    # shutil.move(str(combined_file_path), str(completed_folder))
+    completed_folder = Path(__file__).parent / "completed"
+    shutil.move(str(combined_file_path), str(completed_folder))
 
     print("Audio Processing complete")
 
