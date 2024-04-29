@@ -7,3 +7,4 @@ pydub
 python-dotenv
 pyppeteer
 ffmpeg
+lxml_html_clean
