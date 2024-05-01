@@ -29,9 +29,8 @@ ttsclient = AzureOpenAI(
 # Initialize discord client
 discord_token = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
-client = discord.Client(intents=discord.Intents.all())
-bot = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
-slash = SlashCommand(bot, sync_commands=True)
+client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
+slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
     try:
@@ -120,6 +119,44 @@ def create_embed(title, description, url):
     embed.add_field(name="URL", value=url, inline=False)
     return embed
 
+@client.command(name="blog2pod")
+async def manualchat(ctx: SlashContext, url: str):
+    if not url.startswith(("http://", "https://")):
+        await ctx.send("Invalid URL format. Please provide a valid URL.")
+        return
+    
+    await ctx.send("Building your pod. Grab a coffee.")
+    
+    try:
+        article_title, article_content, page_numbers = await scrape_article(url)
+        if article_title and article_content:
+            full_content = (f"{article_title}\n{article_content}")
+            for page_url in page_numbers:
+                title, content, _ = await scrape_article(page_url)
+                if title and content:
+                    full_content += (f"{title}\n{content}")
+            get_audio(full_content, article_title, url)
+            embed = create_embed("Your pod is ready, bro!", article_title, url)
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(f"Failed to scrape article: {url}")
+
+    except Exception as e:
+        await ctx.send(f"Error: {str(e)}")
+
+@client.event
+async def on_message(message):
+    # Check if the message is from a webhook and starts with !blog2pod
+    if message.webhook_id is not None and message.content.startswith("!blog2pod"):
+        # Extract arguments from the message
+        command_args = message.content.split()[1:]
+        url = " ".join(command_args)
+
+        # Call the chat function directly with the extracted URL
+        await manualchat(message.channel, url)
+
+    await client.process_commands(message)  # Process other commands and events normally
+
 @slash.slash(name="blog2pod", description="Make an mp3 from a blog URL.")
 async def chat(ctx: SlashContext, url: str):
     if not url.startswith(("http://", "https://")):
@@ -147,4 +184,4 @@ async def chat(ctx: SlashContext, url: str):
 
 # Run the bot
 if __name__ == '__main__':
-    bot.run(discord_token)
+    client.run(discord_token)
