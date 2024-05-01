@@ -126,25 +126,26 @@ async def manualchat(ctx: SlashContext, url: str):
         return
     
     await ctx.send("Link received. Processing...")
-    activity=discord.Activity(type=discord.ActivityType.streaming, name="your podcast")
+    activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
     await client.change_presence(activity=activity)
     
-    try:
-        article_title, article_content, page_numbers = await scrape_article(url)
-        if article_title and article_content:
-            full_content = (f"{article_title}\n{article_content}")
-            for page_url in page_numbers:
-                title, content, _ = await scrape_article(page_url)
-                if title and content:
-                    full_content += (f"{title}\n{content}")
-            get_audio(full_content, article_title, url)
-            embed = create_embed("Your podcast was created successfully!", article_title, url)
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send(f"Failed to scrape article: {url}")
+    async with ctx.typing():
+        try:
+            article_title, article_content, page_numbers = await scrape_article(url)
+            if article_title and article_content:
+                full_content = (f"{article_title}\n{article_content}")
+                for page_url in page_numbers:
+                    title, content, _ = await scrape_article(page_url)
+                    if title and content:
+                        full_content += (f"{title}\n{content}")
+                get_audio(full_content, article_title, url)
+                embed = create_embed("Your podcast was created successfully!", article_title, url)
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send(f"Failed to scrape article: {url}")
 
-    except Exception as e:
-        await ctx.send(f"Error: {str(e)}")
+        except Exception as e:
+            await ctx.send(f"Error: {str(e)}")
 
     activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
     await client.change_presence(activity=activity)
@@ -168,24 +169,30 @@ async def chat(ctx: SlashContext, url: str):
         await ctx.send("Invalid URL format. Please provide a valid URL.")
         return
     
-    await ctx.send("Building your pod. Grab a coffee.")
+    await ctx.send("Link received. Processing...")
+    activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
+    await client.change_presence(activity=activity)
     
-    try:
-        article_title, article_content, page_numbers = await scrape_article(url)
-        if article_title and article_content:
-            full_content = (f"{article_title}\n{article_content}")
-            for page_url in page_numbers:
-                title, content, _ = await scrape_article(page_url)
-                if title and content:
-                    full_content += (f"{title}\n{content}")
-            get_audio(full_content, article_title, url)
-            embed = create_embed("Your pod is ready, bro!", article_title, url)
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send(f"Failed to scrape article: {url}")
+    async with ctx.typing():
+        try:
+            article_title, article_content, page_numbers = await scrape_article(url)
+            if article_title and article_content:
+                full_content = (f"{article_title}\n{article_content}")
+                for page_url in page_numbers:
+                    title, content, _ = await scrape_article(page_url)
+                    if title and content:
+                        full_content += (f"{title}\n{content}")
+                get_audio(full_content, article_title, url)
+                embed = create_embed("Your podcast was created successfully!", article_title, url)
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send(f"Failed to scrape article: {url}")
 
-    except Exception as e:
-        await ctx.send(f"Error: {str(e)}")
+        except Exception as e:
+            await ctx.send(f"Error: {str(e)}")
+
+    activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
+    await client.change_presence(activity=activity)
 
 # Run the bot
 if __name__ == '__main__':
