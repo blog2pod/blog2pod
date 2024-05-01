@@ -29,7 +29,7 @@ ttsclient = AzureOpenAI(
 # Initialize discord client
 discord_token = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
-client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="you"))
+client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.custom, name="bored"))
 slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
@@ -116,7 +116,7 @@ def get_audio(cleaned_content, cleaned_title, url):
 
 def create_embed(title, description, url):
     embed = Embed(title=title, description=description, color=discord.Color.blue())
-    embed.add_field(name="URL", value=url, inline=False)
+    embed.add_field(name="Original Link", value=url, inline=False)
     return embed
 
 @client.command(name="blog2pod")
@@ -125,7 +125,9 @@ async def manualchat(ctx: SlashContext, url: str):
         await ctx.send("Invalid URL format. Please provide a valid URL.")
         return
     
-    await ctx.send("Building your pod. Grab a coffee.")
+    await ctx.send("Link received. Processing...")
+    activity=discord.Activity(type=discord.ActivityType.custom, name="not bored")
+    await client.change_presence(activity=activity)
     
     try:
         article_title, article_content, page_numbers = await scrape_article(url)
@@ -136,13 +138,16 @@ async def manualchat(ctx: SlashContext, url: str):
                 if title and content:
                     full_content += (f"{title}\n{content}")
             get_audio(full_content, article_title, url)
-            embed = create_embed("Your pod is ready, bro!", article_title, url)
+            embed = create_embed("Your podcast was created successfully!", article_title, url)
             await ctx.send(embed=embed)
         else:
             await ctx.send(f"Failed to scrape article: {url}")
 
     except Exception as e:
         await ctx.send(f"Error: {str(e)}")
+
+    activity=discord.Activity(type=discord.ActivityType.custom, name="bored")
+    await client.change_presence(activity=activity)
 
 @client.event
 async def on_message(message):
