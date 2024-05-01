@@ -29,7 +29,7 @@ ttsclient = AzureOpenAI(
 # Initialize discord client
 discord_token = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
-client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.custom, name="bored"))
+client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry"))
 slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
@@ -126,7 +126,7 @@ async def manualchat(ctx: SlashContext, url: str):
         return
     
     await ctx.send("Link received. Processing...")
-    activity=discord.Activity(type=discord.ActivityType.custom, name="not bored")
+    activity=discord.Activity(type=discord.ActivityType.streaming, name="your podcast")
     await client.change_presence(activity=activity)
     
     try:
@@ -146,7 +146,7 @@ async def manualchat(ctx: SlashContext, url: str):
     except Exception as e:
         await ctx.send(f"Error: {str(e)}")
 
-    activity=discord.Activity(type=discord.ActivityType.custom, name="bored")
+    activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
     await client.change_presence(activity=activity)
 
 @client.event
