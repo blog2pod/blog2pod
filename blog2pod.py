@@ -34,7 +34,7 @@ slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
     try:
-        browser = await launch(executablePath='/usr/bin/chromium-browser', args=['--no-sandbox'])
+        browser = await launch(executablePath='/usr/bin/chromium', args=['--no-sandbox'])
         page = await browser.newPage()
         await page.goto(url)
 
