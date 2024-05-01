@@ -34,6 +34,7 @@ slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
     try:
+        # If running outside of Docker, you may need to change '/usr/bin/chromium' to 'usr/bin/chromium-browser' depending on host OS
         browser = await launch(executablePath='/usr/bin/chromium', args=['--no-sandbox'])
         page = await browser.newPage()
         await page.goto(url)
