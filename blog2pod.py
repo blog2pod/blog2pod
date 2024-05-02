@@ -164,9 +164,6 @@ async def manualchat(ctx: SlashContext, url: str):
     
     message = await ctx.send("Link received. Processing...")
 
-    # Automatically delete the message after 10 seconds
-    await message.delete(delay=3)
-
     activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
     await client.change_presence(activity=activity)
     
@@ -181,6 +178,7 @@ async def manualchat(ctx: SlashContext, url: str):
                         full_content += (f"{title}\n{content}")
                 get_audio(full_content, article_title, url)
                 embed = create_embed("Your podcast was created successfully!", article_title, url)
+                await message.delete() # Delete original message
                 await ctx.send(embed=embed)
             else:
                 await ctx.send(f"Failed to scrape article: {url}")
