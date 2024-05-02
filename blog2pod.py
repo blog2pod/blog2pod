@@ -13,6 +13,8 @@ import time
 from pydub import AudioSegment
 import shutil
 from music_tag import load_file
+import requests
+from bs4 import BeautifulSoup
 
 # Load environment variables
 load_dotenv()
@@ -45,6 +47,14 @@ async def scrape_article(url):
         # Get the page content after loading
         content = await page.content()
 
+        # Check if the variable is a string and its length is less than a certain character count
+        if len(content) < 100:  # Change 10 to your desired character count
+            print("Variables length is less than 100 characters. Attempting manual scrape")
+            content = extract_html(url)
+            print("Completed manual scrape")
+        else:
+            print("Captured. Continuing")
+
         # Parse the content using Newspaper3k
         article = Article(url)
         article.download(input_html=content)
@@ -67,6 +77,32 @@ async def scrape_article(url):
         return None, None, []
     finally:
         await browser.close()
+
+def fetch_html(url):
+    try:
+        # Send a GET request to the URL and fetch the HTML content
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for any HTTP errors
+
+        # Return the HTML content
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching HTML from {url}: {e}")
+        return None
+
+def extract_html(url):
+    # Fetch HTML content from the URL
+    html_content = fetch_html(url)
+    if html_content is None:
+        return None
+
+    # Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Extract the raw HTML content
+    raw_html = soup.prettify()
+
+    return raw_html
 
 def get_audio(cleaned_content, cleaned_title, url):
     input_text = cleaned_content
@@ -126,7 +162,11 @@ async def manualchat(ctx: SlashContext, url: str):
         await ctx.send("Invalid URL format. Please provide a valid URL.")
         return
     
-    await ctx.send("Link received. Processing...")
+    message = await ctx.send("Link received. Processing...")
+
+    # Automatically delete the message after 10 seconds
+    await message.delete(delay=3)
+
     activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
     await client.change_presence(activity=activity)
     
@@ -163,37 +203,6 @@ async def on_message(message):
         await manualchat(message.channel, url)
 
     await client.process_commands(message)  # Process other commands and events normally
-
-@slash.slash(name="blog2pod", description="Make an mp3 from a blog URL.")
-async def chat(ctx: SlashContext, url: str):
-    if not url.startswith(("http://", "https://")):
-        await ctx.send("Invalid URL format. Please provide a valid URL.")
-        return
-    
-    await ctx.send("Link received. Processing...")
-    activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
-    await client.change_presence(activity=activity)
-    
-    async with ctx.typing():
-        try:
-            article_title, article_content, page_numbers = await scrape_article(url)
-            if article_title and article_content:
-                full_content = (f"{article_title}\n{article_content}")
-                for page_url in page_numbers:
-                    title, content, _ = await scrape_article(page_url)
-                    if title and content:
-                        full_content += (f"{title}\n{content}")
-                get_audio(full_content, article_title, url)
-                embed = create_embed("Your podcast was created successfully!", article_title, url)
-                await ctx.send(embed=embed)
-            else:
-                await ctx.send(f"Failed to scrape article: {url}")
-
-        except Exception as e:
-            await ctx.send(f"Error: {str(e)}")
-
-    activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
-    await client.change_presence(activity=activity)
 
 # Run the bot
 if __name__ == '__main__':
