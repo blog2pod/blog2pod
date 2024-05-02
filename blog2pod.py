@@ -115,8 +115,8 @@ def get_audio(cleaned_content, cleaned_title, url):
 
     for idx, chunk in enumerate(input_chunks):
         response = ttsclient.audio.speech.create(
-            model="tts-1",
-            voice="nova",
+            model="tts-1-hd",
+            voice="shimmer",
             input=chunk,
             # timeout=10  # Increase timeout if needed
         )
