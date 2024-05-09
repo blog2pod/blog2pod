@@ -15,9 +15,13 @@ import shutil
 from music_tag import load_file
 import requests
 from bs4 import BeautifulSoup
+import logging
 
 # Load environment variables
 load_dotenv()
+
+# Initialize log
+logging.basicConfig(filename='debug.log', level=logging.INFO)
 
 azure_endpoint = os.getenv("AZURE_ENDPOINT")
 tts_deployment = os.getenv("TTS_DEPLOYMENT")
@@ -51,9 +55,9 @@ async def scrape_article(url):
         if len(content) < 100:  # Change 10 to your desired character count
             print("Variables length is less than 100 characters. Attempting manual scrape")
             content = extract_html(url)
-            print("Completed manual scrape")
+            logging.info("Completed manual scrape")
         else:
-            print("Captured. Continuing")
+            logging.info("Captured. Continuing")
 
         # Parse the content using Newspaper3k
         article = Article(url)
@@ -73,7 +77,7 @@ async def scrape_article(url):
 
         return title, article_content, page_numbers
     except Exception as e:
-        print(f"Error scraping {url}: {e}")
+        logging.info(f"Error scraping {url}: {e}")
         return None, None, []
     finally:
         await browser.close()
@@ -87,7 +91,7 @@ def fetch_html(url):
         # Return the HTML content
         return response.text
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching HTML from {url}: {e}")
+        logging.info(f"Error fetching HTML from {url}: {e}")
         return None
 
 def extract_html(url):
@@ -127,9 +131,6 @@ def get_audio(cleaned_content, cleaned_title, url):
 
         speech_files.append(speech_file_path)
 
-        # Add a delay to avoid rate limiting
-        time.sleep(1)  # Adjust the delay as needed
-
     # Merge all speech files into one
     combined = AudioSegment.empty()
     for speech_file in speech_files:
@@ -149,7 +150,7 @@ def get_audio(cleaned_content, cleaned_title, url):
     completed_folder = Path(__file__).parent / "completed"
     shutil.move(str(combined_file_path), str(completed_folder))
 
-    print("Audio Processing complete")
+    logging.info("Audio Processing complete")
 
 def create_embed(title, description, url):
     embed = Embed(title=title, description=description, color=discord.Color.blue())
@@ -157,34 +158,39 @@ def create_embed(title, description, url):
     return embed
 
 @client.command(name="blog2pod")
-async def manualchat(ctx: SlashContext, url: str):
+async def chat(ctx: SlashContext, url: str):
+    logging.info("command received")
     if not url.startswith(("http://", "https://")):
         await ctx.send("Invalid URL format. Please provide a valid URL.")
+        logging.info("Invalid URL format. Please provide a valid URL.")
         return
     
     message = await ctx.send("Link received. Processing...")
+    logging.info("Link received. Processing...")
 
     activity=discord.Activity(type=discord.ActivityType.streaming, name="a podcast")
     await client.change_presence(activity=activity)
     
-    async with ctx.typing():
-        try:
-            article_title, article_content, page_numbers = await scrape_article(url)
-            if article_title and article_content:
-                full_content = (f"{article_title}\n{article_content}")
-                for page_url in page_numbers:
-                    title, content, _ = await scrape_article(page_url)
-                    if title and content:
-                        full_content += (f"{title}\n{content}")
-                get_audio(full_content, article_title, url)
-                embed = create_embed("Your podcast was created successfully!", article_title, url)
-                await message.delete() # Delete original message
-                await ctx.send(embed=embed)
-            else:
-                await ctx.send(f"Failed to scrape article: {url}")
+    try:
+        article_title, article_content, page_numbers = await scrape_article(url)
+        if article_title and article_content:
+            full_content = (f"{article_title}\n{article_content}")
+            for page_url in page_numbers:
+                title, content, _ = await scrape_article(page_url)
+                if title and content:
+                    full_content += (f"{title}\n{content}")
+            get_audio(full_content, article_title, url)
+            embed = create_embed("Your podcast was created successfully!", article_title, url)
+            await message.delete() # Delete original message
+            await ctx.send(embed=embed)
+            logging.info("success")
+        else:
+            await ctx.send(f"Failed to scrape article: {url}")
+            logging.info("failed to scrape article")
 
-        except Exception as e:
-            await ctx.send(f"Error: {str(e)}")
+    except Exception as e:
+        await ctx.send(f"Error: {str(e)}")
+        logging.info(f"Error: {str(e)}")
 
     activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
     await client.change_presence(activity=activity)
@@ -198,7 +204,7 @@ async def on_message(message):
         url = " ".join(command_args)
 
         # Call the chat function directly with the extracted URL
-        await manualchat(message.channel, url)
+        await chat(message.channel, url)
 
     await client.process_commands(message)  # Process other commands and events normally
 
