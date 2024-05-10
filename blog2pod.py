@@ -3,13 +3,12 @@ from pyppeteer import launch
 from newspaper import Article
 from discord.ext import commands
 import discord
-from discord_slash import SlashCommand, SlashContext, SlashCommandOptionType
+from discord_slash import SlashCommand, SlashContext
 from discord import Embed
 import os 
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 from pathlib import Path
-import time
 from pydub import AudioSegment
 import shutil
 from music_tag import load_file
@@ -37,6 +36,10 @@ discord_token = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 client = commands.Bot(command_prefix="!", intents=intents, activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry"))
 slash = SlashCommand(client, sync_commands=True)
+
+
+#########################################
+
 
 async def scrape_article(url):
     try:
@@ -82,6 +85,10 @@ async def scrape_article(url):
     finally:
         await browser.close()
 
+
+#########################################
+
+
 def fetch_html(url):
     try:
         # Send a GET request to the URL and fetch the HTML content
@@ -93,6 +100,10 @@ def fetch_html(url):
     except requests.exceptions.RequestException as e:
         logging.info(f"Error fetching HTML from {url}: {e}")
         return None
+    
+
+#########################################
+
 
 def extract_html(url):
     # Fetch HTML content from the URL
@@ -107,6 +118,10 @@ def extract_html(url):
     raw_html = soup.prettify()
 
     return raw_html
+
+
+#########################################
+
 
 def get_audio(cleaned_content, cleaned_title, url):
     input_text = cleaned_content
@@ -152,10 +167,18 @@ def get_audio(cleaned_content, cleaned_title, url):
 
     logging.info("Audio Processing complete")
 
+
+#########################################
+
+
 def create_embed(title, description, url):
     embed = Embed(title=title, description=description, color=discord.Color.blue())
     embed.add_field(name="Original Link", value=url, inline=False)
     return embed
+
+
+#########################################
+
 
 @client.command(name="blog2pod")
 async def chat(ctx: SlashContext, url: str):
@@ -195,6 +218,10 @@ async def chat(ctx: SlashContext, url: str):
     activity=discord.Activity(type=discord.ActivityType.watching, name="paint dry")
     await client.change_presence(activity=activity)
 
+
+#########################################
+
+
 @client.event
 async def on_message(message):
     # Check if the message is from a webhook and starts with !blog2pod
@@ -207,6 +234,10 @@ async def on_message(message):
         await chat(message.channel, url)
 
     await client.process_commands(message)  # Process other commands and events normally
+
+
+#########################################
+
 
 # Run the bot
 if __name__ == '__main__':
