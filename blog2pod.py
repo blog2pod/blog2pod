@@ -15,6 +15,8 @@ from music_tag import load_file
 import requests
 from bs4 import BeautifulSoup
 import logging
+import functools
+import typing
 
 # Load environment variables
 load_dotenv()
@@ -123,7 +125,20 @@ def extract_html(url):
 #########################################
 
 
-def get_audio(cleaned_content, cleaned_title, url):
+def to_thread(func: typing.Callable) -> typing.Coroutine:
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        return await asyncio.to_thread(func, *args, **kwargs)
+    return wrapper
+
+
+#########################################
+
+
+# Apply the decorator to the blocking function
+@to_thread
+def get_audio_thread(cleaned_content, cleaned_title, url):
+    # Your existing get_audio code here...
     input_text = cleaned_content
 
     # Split the input text into chunks of 4000 characters or less
@@ -133,18 +148,22 @@ def get_audio(cleaned_content, cleaned_title, url):
     speech_files = []
 
     for idx, chunk in enumerate(input_chunks):
-        response = ttsclient.audio.speech.create(
-            model="tts-1-hd",
-            voice="shimmer",
-            input=chunk,
-            # timeout=10  # Increase timeout if needed
-        )
+        try:
+            # Asynchronously create the speech
+            response = ttsclient.audio.speech.create(
+                model="tts-1-hd",
+                voice="shimmer",
+                input=chunk,
+            )
 
-        speech_file_path = Path(__file__).parent / f"chunk_{idx}.mp3"
-        with open(str(speech_file_path), "wb") as file:
-            file.write(response.content)
+            # Write the response content to a temporary speech file
+            speech_file_path = Path(__file__).parent / f"{cleaned_title}_chunk_{idx}.mp3"
+            with open(str(speech_file_path), "wb") as file:
+                file.write(response.content)
 
-        speech_files.append(speech_file_path)
+            speech_files.append(speech_file_path)
+        except Exception as e:
+            logging.error(f"Error creating speech: {e}")
 
     # Merge all speech files into one
     combined = AudioSegment.empty()
@@ -166,6 +185,18 @@ def get_audio(cleaned_content, cleaned_title, url):
     shutil.move(str(combined_file_path), str(completed_folder))
 
     logging.info("Audio Processing complete")
+
+
+#########################################
+
+
+async def get_audio(cleaned_content, cleaned_title, url):
+    try:
+        # Call the decorated function asynchronously
+        result = await get_audio_thread(cleaned_content, cleaned_title, url)
+        logging.info(result)  # Log the result or handle it as needed
+    except Exception as e:
+        logging.error(f"Error in get_audio_thread: {e}")    
 
 
 #########################################
@@ -202,7 +233,7 @@ async def chat(ctx: SlashContext, url: str):
                 title, content, _ = await scrape_article(page_url)
                 if title and content:
                     full_content += (f"{title}\n{content}")
-            get_audio(full_content, article_title, url)
+            await get_audio(full_content, article_title, url)
             embed = create_embed("Your podcast was created successfully!", article_title, url)
             await message.delete() # Delete original message
             await ctx.send(embed=embed)
@@ -231,7 +262,7 @@ async def on_message(message):
         url = " ".join(command_args)
 
         # Call the chat function directly with the extracted URL
-        await chat(message.channel, url)
+        asyncio.create_task(chat(message.channel, url))
 
     await client.process_commands(message)  # Process other commands and events normally
 
