@@ -26,6 +26,7 @@ logging.basicConfig(filename='debug.log', level=logging.INFO)
 
 azure_endpoint = os.getenv("AZURE_ENDPOINT")
 tts_deployment = os.getenv("TTS_DEPLOYMENT")
+tts_voice = os.getenv("TTS_VOICE")
 
 ttsclient = AzureOpenAI(
     api_key=os.getenv("AZUREOPENAI_API_KEY"),  
@@ -152,7 +153,7 @@ def get_audio_thread(cleaned_content, cleaned_title, url):
             # Asynchronously create the speech
             response = ttsclient.audio.speech.create(
                 model="tts-1-hd",
-                voice="shimmer",
+                voice=tts_voice,
                 input=chunk,
             )
 
@@ -183,6 +184,10 @@ def get_audio_thread(cleaned_content, cleaned_title, url):
     # Move the file to the /completed folder
     completed_folder = Path(__file__).parent / "completed"
     shutil.move(str(combined_file_path), str(completed_folder))
+
+    # Clean up chunk files
+    for speech_file in speech_files:
+        os.remove(speech_file)
 
     logging.info("Audio Processing complete")
 
