@@ -1,7 +1,4 @@
-# ChatGPT Discord Bot
-
-*Instructions are also available in the  [wiki](https://github.com/tplesetz/chatgpt-turbo-discord-bot/wiki).*
-
+# Blog2Pod - Convert written web content to audio. Then distribute as a podcast using [Audiobookshelf](https://github.com/advplyr/audiobookshelf)
 ## Discord Setup
 
 To create a Discord bot, head over to the [Discord Developer Portal](https://discord.com/developers/applications) and get signed in. Once you’re there create a New Application
