@@ -2,80 +2,102 @@
 
 **Note: Instructions are currently incomplete**
 
-## Discord Setup
+### blog2pod Setup Documentation
 
-To create a Discord bot, head over to the [Discord Developer Portal](https://discord.com/developers/applications) and get signed in. Once you’re there create a New Application
+#### Table of Contents
+1. [Introduction](#introduction)
+2. [Prerequisites](#prerequisites)
+3. [Setting Up the Discord Bot](#setting-up-the-discord-bot)
+4. [Setting Up OpenAI Environment in Azure](#setting-up-openai-environment-in-azure)
+5. [Installing Dependencies](#installing-dependencies)
+6. [Running the Application](#running-the-application)
 
+### Introduction
 
-![](https://miro.medium.com/v2/resize:fit:1012/format:webp/1*fpWfKMZLU1eNWgj456pWpg.png)
+**blog2pod** is a Python application that converts blog posts into podcasts using a Discord bot and OpenAI's GPT-3. This documentation will guide you through the setup process, including creating a Discord bot and setting up an OpenAI environment in Azure.
 
-Give your Application a name, agree to the ToS and create
+### Prerequisites
 
+Before you begin, ensure you have the following:
 
-![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*BYHuVlINNzhHVBczOf2Lng.png)
+- A [Discord](https://discord.com/) account
+- An [Azure](https://azure.microsoft.com/) account
+- Python 3.7 or later installed on your machine
+- Docker installed on your machine
 
-From here, you’ll select Bot from the navigation menu and then Add Bot
+### Setting Up the Discord Bot
 
+1. **Create a New Discord Application**
+   - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
+   - Click on "New Application" and give it a name.
+   - Save the **Application ID** and **Secret** for later use.
 
-![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*yGTAfqulVL9MPqDZ9OGIkw.png)
+2. **Create a Bot User**
+   - Navigate to the "Bot" tab on the left sidebar.
+   - Click "Add Bot" and confirm.
+   - Under the "TOKEN" section, click "Copy" to copy your bot token. Save it for later use.
 
-Once your bot is created, enable Message Content Intent
+3. **Invite the Bot to Your Server**
+   - Navigate to the "OAuth2" tab on the left sidebar.
+   - In the "OAuth2 URL Generator" section, select the "bot" scope.
+   - Under "Bot Permissions," select the permissions your bot needs (e.g., "Send Messages", "Read Messages").
+   - Copy the generated URL, paste it into your browser, and invite the bot to your server.
 
+### Setting Up OpenAI Environment in Azure
 
-![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*khZ71ASO2ZwjaoM41tIHfw.png)
+1. **Create an OpenAI Resource**
+   - Go to the [Azure Portal](https://portal.azure.com/).
+   - Click on "Create a resource" and search for "OpenAI".
+   - Follow the prompts to create an OpenAI resource.
 
-Now click the button to view your Bot’s token. Once you leave this screen, you won’t be able to view the token again so copy it and save it somewhere safe. I use 1Password.
+2. **Obtain API Key**
+   - Once the resource is created, navigate to it.
+   - Under the "Keys and Endpoint" section, copy the API key. Save it for later use.
 
-When you have your Bot token, expand OAuth2 in the navigation menu and go to the URL Generator. From here we will set the Bot’s permissions and add it to your Discord Server. To start, select Bot and applications.commands in the scopes section. Then the permissions selection area will be shown.
+### Installing Dependencies
 
+1. **Clone the Repository**
+   ```sh
+   git clone https://github.com/yourusername/blog2pod.git
+   cd blog2pod
+   ```
 
-![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*11cRb3HW96HhKRh_YYG9wA.png)
+2. **Create a Virtual Environment**
+   ```sh
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
 
-The required permissions for this Bot are:
+3. **Install the Required Python Packages**
+   ```sh
+   pip install -r requirements.txt
+   ```
 
-**General Permissions**
+### Running the Application
 
-* Read Messages/View Channels
+1. **Set Up Environment Variables**
+   - Create a `.env` file in the root directory of your project.
+   - Add the following lines to the `.env` file:
+     ```plaintext
+     DISCORD_TOKEN=your_discord_bot_token
+     OPENAI_API_KEY=your_openai_api_key
+     ```
 
-**Text Permissions**
+2. **Build and Run the Docker Container**
+   ```sh
+   docker build -t blog2pod .
+   docker run -d --name blog2pod -p 8000:8000 blog2pod
+   ```
 
-* Send Messages
-* Send Messages in Threads
-* Read Message History
-* Mention Everyone
-* Use Slash Commands
+3. **Run the Application**
+   ```sh
+   python blog2pod.py
+   ```
 
-After selecting the correct permissions, a URL will be populated at the bottom of the page. Copy that URL and paste it into a new browser tab to allow the Bot to join your server.
+Your Discord bot should now be up and running, ready to convert blog posts into podcasts using OpenAI's GPT-3.
 
-Once the Bot has joined your server, give it permissions to whatever Channels you would like to use to interact with ChatGPT.
+For further customization and detailed usage, refer to the comments and documentation within the `blog2pod.py` script.
 
-## OpenAI Setup
+---
 
-Instructions in progress... 
-
-## Running the Bot
-
-You’ll need a computer to run the Bot from. This could really be anything, but in my case, I’ll use a dedicated Ubuntu Server so the bot can always stay online. But for testing purposes, you could totally do this right from your laptop. 
-
-If you don’t already have Docker installed where you plan to run this Bot, you can install Docker Desktop from [here](https://www.docker.com/products/docker-desktop/).
-
-Since I’m using Ubuntu Server, I’ll be installing using one command in the Terminal.
-
-```shell
-sudo apt install docker.io
-```
-
-Once you have Docker installed, you can run the bot container with the following command..(Get your API Key and Bot token ready)
-
-```shell
-add this
-```
-
-If you did everything correctly, your bot should now be running and connected to Discord. You can validate this by going into a Discord Channel where you gave the Bot permission, and see that it is online
-
-
-![](https://miro.medium.com/v2/resize:fit:640/format:webp/1*LYRC6AWOqEcF4p9A-Qf-jA.png)
-
-In that same channel, you can now use the /chat command to begin interacting with ChatGPT!
-
-![](https://miro.medium.com/v2/resize:fit:1400/1*_kbGjZB2vvQtfE3Ys5ACBg.gif)
+Feel free to reach out if you encounter any issues during the setup process. Happy podcasting!
