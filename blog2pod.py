@@ -48,26 +48,14 @@ slash = SlashCommand(client, sync_commands=True)
 
 async def scrape_article(url):
     try:
-        # If running outside of Docker, you may need to change '/usr/bin/chromium' to 'usr/bin/chromium-browser' depending on host OS
         browser = await launch(executablePath='/usr/bin/chromium', args=['--no-sandbox'])
         page = await browser.newPage()
         await page.goto(url)
 
-        # Wait for a short delay to allow content to load
-        await asyncio.sleep(3)  # Adjust delay as needed
+        await asyncio.sleep(3)  # Wait for content to load
 
-        # Get the page content after loading
         content = await page.content()
 
-        # Check if the variable is a string and its length is less than a certain character count
-        if len(content) < 100:  # Change 10 to your desired character count
-            print("Variables length is less than 100 characters. Attempting manual scrape")
-            content = extract_html(url)
-            logging.info("Completed manual scrape")
-        else:
-            logging.info("Captured. Continuing")
-
-        # Parse the content using Newspaper3k
         article = Article(url)
         article.download(input_html=content)
         article.parse()
@@ -76,28 +64,48 @@ async def scrape_article(url):
         title = article.title
         article_content = article.text
 
-        # Get pagination URLs
-        page_numbers = await page.evaluate('''() => {
-            let pageNumbers = document.querySelectorAll('.page-numbers a');
-            let urls = Array.from(pageNumbers).map(page => page.href);
-            return urls.filter((url, index) => index === 0 || !url.includes('/2/'));
-        }''')
+        # Log the article title and content length
+        logging.info(f"Scraped article '{title}' with content length: {len(article_content)}")
 
         # Use BeautifulSoup to scrape the image
         soup = BeautifulSoup(content, 'html.parser')
 
-        # Try to get the first image tag, assuming it's the header image
+        # Try to find the Open Graph image (og:image) first
         header_img_url = None
-        img_tag = soup.find('img')
-        if img_tag:
-            header_img_url = img_tag.get('src')
-            if not header_img_url.startswith('http'):
-                header_img_url = url + header_img_url  # Adjust for relative URLs
+        og_image = soup.find("meta", property="og:image")
+        if og_image and og_image.get("content"):
+            header_img_url = og_image["content"]
+            logging.info(f"Found og:image tag: {header_img_url}")
+        else:
+            # Fallback to searching for a large <img> tag
+            logging.info("No og:image tag found, searching for large <img> in the page")
+            images = soup.find_all("img")
+            
+            for img in images:
+                if "src" in img.attrs:
+                    img_url = img["src"]
+                    img_width = img.get("width")
+                    img_height = img.get("height")
 
-        return title, article_content, page_numbers
+                    # Ensure image is not a logo or very small by checking dimensions
+                    if img_width and img_height:
+                        if int(img_width) > 200 or int(img_height) > 200:
+                            header_img_url = img_url
+                            logging.info(f"Found a large image: {header_img_url}")
+                            break  # Exit after finding a suitable image
+
+            if not header_img_url:
+                logging.info("No suitable image found in the page")
+
+        # Handle relative URLs for images
+        if header_img_url and not header_img_url.startswith('http'):
+            header_img_url = url + header_img_url
+            logging.info(f"Adjusted relative URL: {header_img_url}")
+
+        return title, article_content, header_img_url
     except Exception as e:
-        logging.info(f"Error scraping {url}: {e}")
-        return None, None, []
+        logging.error(f"Error scraping {url}: {e}")
+        return None, None, None
     finally:
         await browser.close()
 
@@ -106,15 +114,19 @@ async def scrape_article(url):
 
 def download_and_crop_image(image_url):
     try:
+        logging.info(f"Attempting to download image from: {image_url}")
+        
         # Download the image
         response = requests.get(image_url)
         response.raise_for_status()
+        logging.info(f"Image downloaded successfully from: {image_url}")
 
         # Open the image with PIL
         img = Image.open(io.BytesIO(response.content))
+        width, height = img.size
+        logging.info(f"Original image size: {width}x{height}")
 
         # Crop the image to a square
-        width, height = img.size
         if width != height:
             min_dim = min(width, height)
             left = (width - min_dim) / 2
@@ -122,10 +134,12 @@ def download_and_crop_image(image_url):
             right = (width + min_dim) / 2
             bottom = (height + min_dim) / 2
             img = img.crop((left, top, right, bottom))
+            logging.info(f"Cropped image to square with dimensions: {min_dim}x{min_dim}")
 
         # Save the cropped image to a temporary file
         image_path = Path(__file__).parent / "header_image.jpg"
         img.save(image_path, format="JPEG")
+        logging.info(f"Image saved at: {image_path}")
 
         return image_path
     except Exception as e:
@@ -207,7 +221,7 @@ def get_audio_thread(cleaned_content, cleaned_title, url, header_img_url=None):
 
             speech_files.append(speech_file_path)
         except Exception as e:
-            logging.error(f"Error creating speech: {e}")
+            logging.error(f"Error creating speech for chunk {idx}: {e}")
 
     # Merge all speech files into one
     combined = AudioSegment.empty()
@@ -218,6 +232,8 @@ def get_audio_thread(cleaned_content, cleaned_title, url, header_img_url=None):
     combined_file_path = Path(__file__).parent / f"{cleaned_title}.mp3"
     combined.export(str(combined_file_path), format="mp3")
 
+    logging.info(f"Combined audio file saved at: {combined_file_path}")
+
     # Add comment metadata to the combined audio file
     audio_file = load_file(str(combined_file_path))
     audio_file['comment'] = url
@@ -225,22 +241,29 @@ def get_audio_thread(cleaned_content, cleaned_title, url, header_img_url=None):
 
     # If the header image is available, attach it as artwork
     if header_img_url:
+        logging.info(f"Attempting to download and attach image from URL: {header_img_url}")
         image_path = download_and_crop_image(header_img_url)
         if image_path:
+            logging.info(f"Attaching image from: {image_path}")
             with open(image_path, "rb") as img:
                 audio_file['artwork'] = img.read()
+            logging.info(f"Artwork attached successfully.")
         else:
-            logging.info("No header image found or failed to process.")
+            logging.warning("Failed to download or process the header image.")
+    else:
+        logging.info("No header image URL provided.")
 
     audio_file.save()
 
     # Move the file to the /completed folder
     completed_folder = Path(__file__).parent / "completed"
     shutil.move(str(combined_file_path), str(completed_folder))
+    logging.info(f"Audio file moved to: {completed_folder}")
 
     # Clean up chunk files
     for speech_file in speech_files:
         os.remove(speech_file)
+        logging.info(f"Removed temporary file: {speech_file}")
 
     logging.info("Audio Processing complete")
 
