@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 import logging
 import functools
 import typing
+from PIL import Image
+import io
 
 # Load environment variables
 load_dotenv()
@@ -81,6 +83,17 @@ async def scrape_article(url):
             return urls.filter((url, index) => index === 0 || !url.includes('/2/'));
         }''')
 
+        # Use BeautifulSoup to scrape the image
+        soup = BeautifulSoup(content, 'html.parser')
+
+        # Try to get the first image tag, assuming it's the header image
+        header_img_url = None
+        img_tag = soup.find('img')
+        if img_tag:
+            header_img_url = img_tag.get('src')
+            if not header_img_url.startswith('http'):
+                header_img_url = url + header_img_url  # Adjust for relative URLs
+
         return title, article_content, page_numbers
     except Exception as e:
         logging.info(f"Error scraping {url}: {e}")
@@ -88,6 +101,36 @@ async def scrape_article(url):
     finally:
         await browser.close()
 
+
+#########################################
+
+def download_and_crop_image(image_url):
+    try:
+        # Download the image
+        response = requests.get(image_url)
+        response.raise_for_status()
+
+        # Open the image with PIL
+        img = Image.open(io.BytesIO(response.content))
+
+        # Crop the image to a square
+        width, height = img.size
+        if width != height:
+            min_dim = min(width, height)
+            left = (width - min_dim) / 2
+            top = (height - min_dim) / 2
+            right = (width + min_dim) / 2
+            bottom = (height + min_dim) / 2
+            img = img.crop((left, top, right, bottom))
+
+        # Save the cropped image to a temporary file
+        image_path = Path(__file__).parent / "header_image.jpg"
+        img.save(image_path, format="JPEG")
+
+        return image_path
+    except Exception as e:
+        logging.error(f"Error downloading or cropping image: {e}")
+        return None
 
 #########################################
 
@@ -138,7 +181,7 @@ def to_thread(func: typing.Callable) -> typing.Coroutine:
 
 # Apply the decorator to the blocking function
 @to_thread
-def get_audio_thread(cleaned_content, cleaned_title, url):
+def get_audio_thread(cleaned_content, cleaned_title, url, header_img_url=None):
     # Your existing get_audio code here...
     input_text = cleaned_content
 
@@ -175,10 +218,20 @@ def get_audio_thread(cleaned_content, cleaned_title, url):
     combined_file_path = Path(__file__).parent / f"{cleaned_title}.mp3"
     combined.export(str(combined_file_path), format="mp3")
 
-     # Add comment metadata to the combined audio file
+    # Add comment metadata to the combined audio file
     audio_file = load_file(str(combined_file_path))
     audio_file['comment'] = url
     audio_file['title'] = cleaned_title
+
+    # If the header image is available, attach it as artwork
+    if header_img_url:
+        image_path = download_and_crop_image(header_img_url)
+        if image_path:
+            with open(image_path, "rb") as img:
+                audio_file['artwork'] = img.read()
+        else:
+            logging.info("No header image found or failed to process.")
+
     audio_file.save()
 
     # Move the file to the /completed folder
@@ -195,10 +248,10 @@ def get_audio_thread(cleaned_content, cleaned_title, url):
 #########################################
 
 
-async def get_audio(cleaned_content, cleaned_title, url):
+async def get_audio(cleaned_content, cleaned_title, url, header_img_url=None):
     try:
-        # Call the decorated function asynchronously
-        result = await get_audio_thread(cleaned_content, cleaned_title, url)
+        # Pass the image URL to the audio function
+        result = await get_audio_thread(cleaned_content, cleaned_title, url, header_img_url)
         logging.info(result)  # Log the result or handle it as needed
     except Exception as e:
         logging.error(f"Error in get_audio_thread: {e}")    
@@ -231,16 +284,12 @@ async def chat(ctx: SlashContext, url: str):
     await client.change_presence(activity=activity)
     
     try:
-        article_title, article_content, page_numbers = await scrape_article(url)
+        article_title, article_content, header_img_url = await scrape_article(url)
         if article_title and article_content:
             full_content = (f"{article_title}\n{article_content}")
-            for page_url in page_numbers:
-                title, content, _ = await scrape_article(page_url)
-                if title and content:
-                    full_content += (f"{title}\n{content}")
-            await get_audio(full_content, article_title, url)
+            await get_audio(full_content, article_title, url, header_img_url)  # Pass image URL here
             embed = create_embed("Your podcast was created successfully!", article_title, url)
-            await message.delete() # Delete original message
+            await message.delete()  # Delete original message
             await ctx.send(embed=embed)
             logging.info("success")
         else:
