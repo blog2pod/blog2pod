@@ -31,7 +31,7 @@ tts_deployment = os.getenv("TTS_DEPLOYMENT")
 tts_voice = os.getenv("TTS_VOICE")
 
 ttsclient = AzureOpenAI(
-    api_key=os.getenv("AZUREOPENAI_API_KEY"),  
+    api_key=os.getenv("API_KEY"),  
     api_version="2024-02-15-preview",
     azure_endpoint=f"{azure_endpoint}/openai/deployments/{tts_deployment}/audio/speech?api-version=2024-02-15-preview"
 )
