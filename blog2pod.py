@@ -229,6 +229,7 @@ def get_audio_thread(cleaned_content, cleaned_title, url, header_img_url=None):
     audio_file = load_file(str(combined_file_path))
     audio_file['comment'] = url
     audio_file['title'] = cleaned_title
+    audio_file['artist'] = "Azure OpenAI"
 
     # If the header image is available, attach it as artwork
     if header_img_url:
