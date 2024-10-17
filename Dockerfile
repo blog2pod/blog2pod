@@ -13,7 +13,6 @@ RUN pip3 install newspaper3k
 
 # Install ffmpeg
 RUN apt-get update && apt-get install -y ffmpeg
-RUN apt-get update && apt-get install -y chromium
 
 # Copy the rest of the application code into the container
 COPY blog2pod.py .

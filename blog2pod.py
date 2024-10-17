@@ -1,5 +1,4 @@
 import asyncio
-from pyppeteer import launch
 from newspaper import Article
 from discord.ext import commands
 import discord
@@ -19,6 +18,7 @@ import functools
 import typing
 from PIL import Image
 import io
+from urllib.parse import urljoin
 
 # Load environment variables
 load_dotenv()
@@ -46,18 +46,11 @@ slash = SlashCommand(client, sync_commands=True)
 #########################################
 
 
-async def scrape_article(url):
+def scrape_article(url):
     try:
-        browser = await launch(executablePath='/usr/bin/chromium', args=['--no-sandbox'])
-        page = await browser.newPage()
-        await page.goto(url)
-
-        await asyncio.sleep(3)  # Wait for content to load
-
-        content = await page.content()
-
+        # Use Newspaper3k to download and parse the article
         article = Article(url)
-        article.download(input_html=content)
+        article.download()
         article.parse()
 
         # Extract article title and text
@@ -67,8 +60,8 @@ async def scrape_article(url):
         # Log the article title and content length
         logging.info(f"Scraped article '{title}' with content length: {len(article_content)}")
 
-        # Use BeautifulSoup to scrape the image
-        soup = BeautifulSoup(content, 'html.parser')
+        # Use BeautifulSoup to find the image in the HTML
+        soup = BeautifulSoup(article.html, 'html.parser')
 
         # Try to find the Open Graph image (og:image) first
         header_img_url = None
@@ -99,15 +92,13 @@ async def scrape_article(url):
 
         # Handle relative URLs for images
         if header_img_url and not header_img_url.startswith('http'):
-            header_img_url = url + header_img_url
+            header_img_url = urljoin(url, header_img_url)
             logging.info(f"Adjusted relative URL: {header_img_url}")
 
         return title, article_content, header_img_url
     except Exception as e:
         logging.error(f"Error scraping {url}: {e}")
         return None, None, None
-    finally:
-        await browser.close()
 
 
 #########################################
@@ -307,7 +298,7 @@ async def chat(ctx: SlashContext, url: str):
     await client.change_presence(activity=activity)
     
     try:
-        article_title, article_content, header_img_url = await scrape_article(url)
+        article_title, article_content, header_img_url = scrape_article(url)
         if article_title and article_content:
             full_content = (f"{article_title}\n{article_content}")
             await get_audio(full_content, article_title, url, header_img_url)  # Pass image URL here
