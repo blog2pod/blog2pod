@@ -22,7 +22,6 @@ RUN mkdir /blog2pod/completed
 
 # Set permissions for the 'completed' directory
 RUN chmod 755 /blog2pod/completed
-RUN chmod 777 /usr/bin/chromium
 
 # Set the entry point for the container
 CMD ["python", "blog2pod.py"]
